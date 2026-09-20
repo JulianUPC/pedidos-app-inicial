@@ -5,19 +5,8 @@ import { notificaciones } from '../services/notificaciones.js'
 /**
  * EJERCICIO 2 — Facade
  *
- * procesarPedido() debe orquestar, EN ORDEN, estas 4 operaciones:
- *   1. inventario.reservar(pedido.items)
- *   2. this.pago.procesar(pedido.total)      (el IPago inyectado)
- *   3. envios.programar(pedido.direccion)
- *   4. notificaciones.confirmar(pedido.cliente)
- *
- * Si el pago falla (resultado.exito === false), NO debe continuar con
- * envío ni notificación: debe lanzar un Error con un mensaje claro.
- *
- * Referencia: mismo patrón visto en clase, pero aquí "Pagos" es un
- * IPago ya adaptado (Ejercicio 1) en vez de un servicio directo — así
- * la Fachada no sabe (ni le importa) si por debajo está la Pasarela X
- * o la Y.
+ * Esconde la coordinación de 4 servicios detrás de una sola llamada:
+ * procesarPedido(pedido).
  */
 export class FachadaPedidos {
   constructor(pago) {
@@ -25,7 +14,19 @@ export class FachadaPedidos {
   }
 
   async procesarPedido(pedido) {
-    // TODO(Ejercicio 2): implementar la orquestación descrita arriba
-    throw new Error('FachadaPedidos.procesarPedido() no implementado todavía')
+    //Reservar inventario
+    await inventario.reservar(pedido.items)
+
+    //Cobrar con el Adapter inyectado (la Fachada no sabe si es X o Y)
+    const resultado = await this.pago.procesar(pedido.total)
+
+    //Si el pago falla, se corta el flujo y no hay envio ni notificacion
+    if (!resultado.exito) {
+      throw new Error('El pago fue rechazado. El pedido no se procesó.')
+    }
+
+    // 4. Pago OK: programar envío y confirmar al cliente
+    await envios.programar(pedido.direccion)
+    await notificaciones.confirmar(pedido.cliente)
   }
 }
