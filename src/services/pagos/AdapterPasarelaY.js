@@ -3,17 +3,8 @@ import { SdkPasarelaY } from './SdkPasarelaY.js'
 
 /**
  * EJERCICIO 1 — Adapter
- *
- * Completa este adaptador para que SdkPasarelaY cumpla la misma
- * interfaz IPago que AdapterPasarelaX (ábrelo como referencia: es el
- * mismo ejemplo que vimos en clase).
- *
- * Pistas:
- * - SdkPasarelaY.charge() recibe CENTAVOS, no la unidad monetaria
- *   completa: hay que convertir `monto`.
- * - SdkPasarelaY.charge() puede rechazar la promesa: usa try/catch.
- * - Debes devolver siempre un Resultado(exito, idTransaccion), nunca
- *   el objeto crudo que devuelve el SDK.
+ * Adapta SdkPasarelaY (charge(centavos, opts), rechaza la promesa) a la
+ * interfaz común IPago (procesar(monto) -> Resultado).
  */
 export class AdapterPasarelaY {
   constructor(sdk = new SdkPasarelaY()) {
@@ -21,7 +12,16 @@ export class AdapterPasarelaY {
   }
 
   async procesar(monto) {
-    // TODO(Ejercicio 1): implementar usando this.sdk.charge(...)
-    throw new Error('AdapterPasarelaY.procesar() no implementado todavía')
+    try {
+      // esta es la unidad que recibe los centavos, ademas coloque un math.round para evita errores de punto flotante
+      const centavos = Math.round(monto * 100)
+      // aca se hace la llamada al SDK con su interfaz propia 
+      const resultado = await this.sdk.charge(centavos, { currency: 'COP' })
+      // En caso de exito, se devuelve un resultado con exito=true y el id de transaccion
+      return new Resultado(true, resultado.txId)
+    } catch (err) {
+      // De lo contrario, se devuelve un resultado con exito=false y idTransaccion=null
+      return new Resultado(false, null)
+    }
   }
 }
